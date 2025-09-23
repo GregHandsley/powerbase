@@ -1,0 +1,23 @@
+{
+    "name": "@powerbase/api",
+    "version": "0.0.1",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc -p tsconfig.json",
+        "start": "node dist/index.js",
+        "prisma:generate": "prisma generate --schema=../../infra/prisma/schema.prisma",
+        "prisma:migrate": "prisma migrate dev --schema=../../infra/prisma/schema.prisma",
+        "prisma:seed": "tsx ../../infra/prisma/seed.ts"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.19.2"
+    },
+    "devDependencies": {
+        "dotenv": "^17.2.2",
+        "tsx": "^4.20.5",
+        "typescript": "^5.6.2"
+    }
+}

@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RackType {
+  FULL
+  HALF
+  STAND
+}
+
+model Side {
+  id    Int    @id
+  key   String @unique // 1:Power, 2:Base
+  Racks Rack[]
+  Areas Area[]
+}
+
+model Rack {
+  id      String  @id @default(cuid())
+  sideId  Int
+  number  Int
+  type    RackType
+  zone    Int?
+  Side    Side    @relation(fields: [sideId], references: [id])
+  @@unique([sideId, number])
+}
+
+model User {
+  id           String @id @default(cuid())
+  email        String @unique
+  name         String?
+  passwordHash String
+  role         String @default("HOST")
+  createdAt    DateTime @default(now())
+}
+
+model Area {
+  id          String  @id @default(cuid())
+  sideId      Int
+  key         String
+  name        String
+  maxHeads    Int?
+  unitsCount  Int?
+  bookable    Boolean @default(false)
+
+  Side        Side    @relation(fields: [sideId], references: [id])
+
+  @@unique([sideId, key])
+}
