@@ -18,6 +18,7 @@ model Side {
   key   String @unique // 1:Power, 2:Base
   Racks Rack[]
   Areas Area[]
+  Matrices AllocationMatrix[]
 }
 
 model Rack {
@@ -51,4 +52,42 @@ model Area {
   Side        Side    @relation(fields: [sideId], references: [id])
 
   @@unique([sideId, key])
+}
+
+enum SideProfile {
+  term
+  vacation
+}
+
+enum SlotMode {
+  PERFORMANCE_ONLY
+  HYBRID
+  GENERAL_ONLY
+  SSEHS           // special teaching blocks you gave for Thursday Base
+}
+
+model TermPeriod {
+  id       String     @id @default(cuid())
+  name     String     @unique
+  start    DateTime
+  end      DateTime
+  profile  SideProfile
+  Matrices AllocationMatrix[]
+}
+
+model AllocationMatrix {
+  id         String   @id @default(cuid())
+  termId     String
+  sideId     Int
+  dayOfWeek  Int       // 1=Mon ... 7=Sun
+  slotStart  String    // "06:30"
+  slotEnd    String    // "07:30"
+  mode       SlotMode
+  perfCap    Int?
+  generalCap Int?
+
+  Term   TermPeriod @relation(fields: [termId], references: [id])
+  Side   Side       @relation(fields: [sideId], references: [id])
+
+  @@index([termId, sideId, dayOfWeek])
 }

@@ -1,8 +1,13 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 import dotenv from 'dotenv';
 import { PrismaClient, RackType } from '@prisma/client';
+import { SlotMode, SideProfile } from '@prisma/client';
 
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+const here = path.dirname(fileURLToPath(import.meta.url));
+// Load env from repo root (two levels up from infra/prisma)
+dotenv.config({ path: path.resolve(here, '../../.env') });
 
 const prisma = new PrismaClient();
 
@@ -67,6 +72,12 @@ async function main() {
   await upsertArea(2, 'boxing_mezz', 'Boxing Mezzanine', { bookable: true });
   await upsertArea(2, 'racks', 'Racks');
 
+  // Import allocation matrices (term/vacation)
+  const termPath = path.resolve(here, 'allocations.term.json');
+  const vacPath  = path.resolve(here, 'allocations.vacation.json');
+  await importMatrix(termPath);
+  await importMatrix(vacPath);
+
   console.log('Seed complete: Power (20 racks + areas), Base (24 racks + areas)');
 }
 
@@ -85,3 +96,62 @@ main().catch((e) => {
 }).finally(async () => {
   await prisma.$disconnect();
 });
+
+
+type MatrixFile = {
+  period: { name: string; start: string; end: string; profile: 'term'|'vacation' };
+  slots: Array<{
+    side: 'Power' | 'Base';
+    dow: number;            // 1..7
+    start: string;          // "07:30"
+    end: string;            // "09:00"
+    mode: 'PERFORMANCE_ONLY' | 'HYBRID' | 'GENERAL_ONLY' | 'SSEHS';
+    perfCap: number | null;
+    generalCap: number | null;
+  }>;
+};
+
+async function importMatrix(jsonPath: string) {
+  if (!fs.existsSync(jsonPath)) {
+    console.log(`Matrix file not found (skipping): ${jsonPath}`);
+    return;
+  }
+  const raw = fs.readFileSync(jsonPath, 'utf8');
+  const data = JSON.parse(raw) as MatrixFile;
+
+  // create or update TermPeriod
+  const term = await prisma.termPeriod.upsert({
+    where: { name: data.period.name },
+    update: { start: new Date(data.period.start), end: new Date(data.period.end), profile: data.period.profile as SideProfile },
+    create: { name: data.period.name, start: new Date(data.period.start), end: new Date(data.period.end), profile: data.period.profile as SideProfile }
+  });
+
+  // side lookup
+  const sides = await prisma.side.findMany();
+  const sideIdByKey = new Map(sides.map(s => [s.key, s.id] as const));
+
+  // clear any existing matrix rows for this term (safe for seed)
+  await prisma.allocationMatrix.deleteMany({ where: { termId: term.id } });
+
+  for (const s of data.slots) {
+    const sideId = sideIdByKey.get(s.side);
+    if (!sideId) throw new Error(`Unknown side key in matrix import: ${s.side}`);
+
+    await prisma.allocationMatrix.create({
+      data: {
+        termId: term.id,
+        sideId,
+        dayOfWeek: s.dow,
+        slotStart: s.start,
+        slotEnd: s.end,
+        mode: s.mode as SlotMode,
+        perfCap: s.perfCap ?? undefined,
+        generalCap: s.generalCap ?? undefined
+      }
+    });
+  }
+
+  console.log(`Imported allocation matrix: ${data.period.name} (${data.slots.length} slots)`);
+}
+
+// (moved into main to avoid top-level await)
