@@ -91,3 +91,31 @@ model AllocationMatrix {
 
   @@index([termId, sideId, dayOfWeek])
 }
+
+model Request {
+  id        String   @id @default(cuid())
+  userId    String
+  squadId   String?      // optional, can link to a Squad table later
+  start     DateTime     // block start
+  end       DateTime     // block end
+  patternJson Json       // recurrence pattern (e.g. { dow: [1,3], slot: "07:30-09:00" })
+  headcount Int
+  areasJson Json         // { racks: [1,2,3], areas: ["dumbbells"], notes: "wheelchair" }
+  notes     String?
+  status    String   @default("draft")
+
+  Instances RequestInstance[]
+}
+
+model RequestInstance {
+  id        String   @id @default(cuid())
+  requestId String
+  date      DateTime
+  slotStart String
+  slotEnd   String
+  side      String
+  status    String   @default("draft")
+  flagsJson Json     // e.g., { conflict: true, reason: "contiguity violation" }
+
+  Request   Request @relation(fields: [requestId], references: [id])
+}

@@ -1,2 +1,2 @@
-import SlotsViewerPage from './pages/SlotsViewerPage';
-export default function App() { return <SlotsViewerPage />; }
+import NewRequestPage from './pages/NewRequestPage';
+export default function App(){ return <NewRequestPage/>; }
