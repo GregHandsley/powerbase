@@ -6,6 +6,8 @@ import pkg from '../package.json' assert { type: 'json' };
 import inventoryRouter from './routes/inventory.js';
 import matrixRouter from './routes/matrix.js';
 import requestsRouter from "./routes/requests.js";
+import availabilityRouter from './routes/availability.js';
+import debugRouter from './routes/debug.js';
 
 const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? '*' }));
@@ -14,6 +16,8 @@ app.use(express.json());
 app.use('/inventory', inventoryRouter);
 app.use('/matrix', matrixRouter);
 app.use("/requests", requestsRouter);
+app.use('/availability', availabilityRouter);
+app.use('/debug', debugRouter);
 
 app.get('/health', (_req, res) => res.json({ ok: true, env: process.env.NODE_ENV || 'dev' }));
 app.get('/version', (_req, res) => res.json({ name: 'powerbase-api', version: pkg.version }));

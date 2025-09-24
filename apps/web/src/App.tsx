@@ -1,2 +1,2 @@
-import NewRequestPage from './pages/NewRequestPage';
-export default function App(){ return <NewRequestPage/>; }
+import BlockAvailabilityPage from './pages/BlockAvailabilityPage';
+export default function App(){ return <BlockAvailabilityPage/>; }

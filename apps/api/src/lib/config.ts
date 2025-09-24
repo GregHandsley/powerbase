@@ -1,0 +1,1 @@
+export const MAX_HEADS_PER_RACK_DEFAULT = 4;

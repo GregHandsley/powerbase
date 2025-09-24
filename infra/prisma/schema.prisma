@@ -14,42 +14,45 @@ enum RackType {
 }
 
 model Side {
-  id    Int    @id
-  key   String @unique // 1:Power, 2:Base
-  Racks Rack[]
-  Areas Area[]
-  Matrices AllocationMatrix[]
+  id              Int                @id
+  key             String             @unique // 1:Power, 2:Base
+  Racks           Rack[]
+  Areas           Area[]
+  Matrices        AllocationMatrix[]
+  ExceptionBlocks ExceptionBlock[]
+  Allocations     Allocation[]
 }
 
 model Rack {
-  id      String  @id @default(cuid())
-  sideId  Int
-  number  Int
-  type    RackType
-  zone    Int?
-  Side    Side    @relation(fields: [sideId], references: [id])
+  id     String   @id @default(cuid())
+  sideId Int
+  number Int
+  type   RackType
+  zone   Int?
+  Side   Side     @relation(fields: [sideId], references: [id])
+
   @@unique([sideId, number])
 }
 
 model User {
-  id           String @id @default(cuid())
-  email        String @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   name         String?
   passwordHash String
-  role         String @default("HOST")
+  role         String   @default("HOST")
   createdAt    DateTime @default(now())
 }
 
 model Area {
-  id          String  @id @default(cuid())
-  sideId      Int
-  key         String
-  name        String
-  maxHeads    Int?
-  unitsCount  Int?
-  bookable    Boolean @default(false)
+  id         String  @id @default(cuid())
+  sideId     Int
+  key        String
+  name       String
+  maxHeads   Int?
+  unitsCount Int?
+  bookable   Boolean @default(false)
 
-  Side        Side    @relation(fields: [sideId], references: [id])
+  Side Side @relation(fields: [sideId], references: [id])
 
   @@unique([sideId, key])
 }
@@ -63,12 +66,12 @@ enum SlotMode {
   PERFORMANCE_ONLY
   HYBRID
   GENERAL_ONLY
-  SSEHS           // special teaching blocks you gave for Thursday Base
+  SSEHS // special teaching blocks you gave for Thursday Base
 }
 
 model TermPeriod {
-  id       String     @id @default(cuid())
-  name     String     @unique
+  id       String             @id @default(cuid())
+  name     String             @unique
   start    DateTime
   end      DateTime
   profile  SideProfile
@@ -79,30 +82,30 @@ model AllocationMatrix {
   id         String   @id @default(cuid())
   termId     String
   sideId     Int
-  dayOfWeek  Int       // 1=Mon ... 7=Sun
-  slotStart  String    // "06:30"
-  slotEnd    String    // "07:30"
+  dayOfWeek  Int // 1=Mon ... 7=Sun
+  slotStart  String // "06:30"
+  slotEnd    String // "07:30"
   mode       SlotMode
   perfCap    Int?
   generalCap Int?
 
-  Term   TermPeriod @relation(fields: [termId], references: [id])
-  Side   Side       @relation(fields: [sideId], references: [id])
+  Term TermPeriod @relation(fields: [termId], references: [id])
+  Side Side       @relation(fields: [sideId], references: [id])
 
   @@index([termId, sideId, dayOfWeek])
 }
 
 model Request {
-  id        String   @id @default(cuid())
-  userId    String
-  squadId   String?      // optional, can link to a Squad table later
-  start     DateTime     // block start
-  end       DateTime     // block end
-  patternJson Json       // recurrence pattern (e.g. { dow: [1,3], slot: "07:30-09:00" })
-  headcount Int
-  areasJson Json         // { racks: [1,2,3], areas: ["dumbbells"], notes: "wheelchair" }
-  notes     String?
-  status    String   @default("draft")
+  id          String   @id @default(cuid())
+  userId      String
+  squadId     String? // optional, can link to a Squad table later
+  start       DateTime // block start
+  end         DateTime // block end
+  patternJson Json // recurrence pattern (e.g. { dow: [1,3], slot: "07:30-09:00" })
+  headcount   Int
+  areasJson   Json // { racks: [1,2,3], areas: ["dumbbells"], notes: "wheelchair" }
+  notes       String?
+  status      String   @default("draft")
 
   Instances RequestInstance[]
 }
@@ -115,7 +118,38 @@ model RequestInstance {
   slotEnd   String
   side      String
   status    String   @default("draft")
-  flagsJson Json     // e.g., { conflict: true, reason: "contiguity violation" }
+  flagsJson Json // e.g., { conflict: true, reason: "contiguity violation" }
 
-  Request   Request @relation(fields: [requestId], references: [id])
+  Request     Request      @relation(fields: [requestId], references: [id])
+  Allocations Allocation[]
+}
+
+model ExceptionBlock {
+  id        String   @id @default(cuid())
+  sideId    Int
+  areaKey   String?
+  start     DateTime
+  end       DateTime
+  reason    String
+  createdBy String
+
+  Side Side @relation(fields: [sideId], references: [id])
+
+  @@index([sideId, start, end])
+}
+
+model Allocation {
+  id                String @id @default(cuid())
+  requestInstanceId String
+  sideId            Int
+  racksJson         Json
+  trackThirdsJson   Json?
+  areasUsageJson    Json?
+  status            String // "approved" | "pending" | "rejected" | "provisional"
+
+  RequestInstance RequestInstance @relation(fields: [requestInstanceId], references: [id])
+  Side            Side            @relation(fields: [sideId], references: [id])
+
+  @@index([sideId])
+  @@index([requestInstanceId])
 }
