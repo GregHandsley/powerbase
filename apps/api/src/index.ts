@@ -8,6 +8,12 @@ import matrixRouter from './routes/matrix.js';
 import requestsRouter from "./routes/requests.js";
 import availabilityRouter from './routes/availability.js';
 import debugRouter from './routes/debug.js';
+import adminRouter, { _wirePump } from './routes/admin.js';
+import kioskRouter, { pumpKioskNow } from './routes/kiosk.js';
+import legendRouter from './routes/legend.js';
+import bookingsRouter from './routes/bookings.js';
+
+_wirePump(pumpKioskNow);
 
 const app = express();
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? '*' }));
@@ -18,6 +24,10 @@ app.use('/matrix', matrixRouter);
 app.use("/requests", requestsRouter);
 app.use('/availability', availabilityRouter);
 app.use('/debug', debugRouter);
+app.use('/admin', adminRouter);
+app.use('/legend', legendRouter);
+app.use('/kiosk', kioskRouter);
+app.use('/bookings', bookingsRouter);
 
 app.get('/health', (_req, res) => res.json({ ok: true, env: process.env.NODE_ENV || 'dev' }));
 app.get('/version', (_req, res) => res.json({ name: 'powerbase-api', version: pkg.version }));

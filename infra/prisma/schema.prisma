@@ -117,11 +117,12 @@ model RequestInstance {
   slotStart String
   slotEnd   String
   side      String
-  status    String   @default("draft")
-  flagsJson Json // e.g., { conflict: true, reason: "contiguity violation" }
+  status    String   @default("draft") // "draft" | "pending" | "approved" | "rejected"
+  flagsJson Json
 
   Request     Request      @relation(fields: [requestId], references: [id])
   Allocations Allocation[]
+  LegendSync  LegendSync?
 }
 
 model ExceptionBlock {
@@ -150,6 +151,14 @@ model Allocation {
   RequestInstance RequestInstance @relation(fields: [requestInstanceId], references: [id])
   Side            Side            @relation(fields: [sideId], references: [id])
 
+  @@unique([requestInstanceId])
   @@index([sideId])
   @@index([requestInstanceId])
+}
+
+model LegendSync {
+  id                 String  @id @default(cuid())
+  requestInstanceId  String  @unique
+  status             String  @default("pending") // "pending" | "added"
+  RequestInstance    RequestInstance @relation(fields: [requestInstanceId], references: [id])
 }
