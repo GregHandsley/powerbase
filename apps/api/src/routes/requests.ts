@@ -35,7 +35,7 @@ r.post("/:id/instances", async (req, res) => {
   const request = await prisma.request.findUnique({ where: { id } });
   if (!request) return res.status(404).json({ error: "Not found" });
 
-  const { dow, slotStart, slotEnd, side } = request.patternJson as any;
+  const { dow = [], slotStart, slotEnd, side } = request.patternJson as any;
   const startDate = new Date(request.start);
   const endDate = new Date(request.end);
 

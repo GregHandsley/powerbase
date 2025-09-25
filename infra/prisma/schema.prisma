@@ -123,6 +123,7 @@ model RequestInstance {
   Request     Request      @relation(fields: [requestId], references: [id])
   Allocations Allocation[]
   LegendSync  LegendSync?
+  ChangeRequests ChangeRequest[]
 }
 
 model ExceptionBlock {
@@ -161,4 +162,42 @@ model LegendSync {
   requestInstanceId  String  @unique
   status             String  @default("pending") // "pending" | "added"
   RequestInstance    RequestInstance @relation(fields: [requestInstanceId], references: [id])
+}
+
+model LockPeriod {
+  id        String   @id @default(cuid())
+  weekStart DateTime // Monday 00:00 UTC for the locked week
+  lockedAt  DateTime // when the lock was applied (Thu 00:00 UTC prior)
+  note      String?
+  @@unique([weekStart])
+}
+
+model ChangeRequest {
+  id                 String   @id @default(cuid())
+  requestInstanceId  String
+  createdByUserId    String
+  createdAt          DateTime @default(now())
+  reason             String?
+  // payload = the requested changes (e.g., racks, headcount, notes, areas)
+  payload            Json
+  status             String   @default("pending") // pending|approved|rejected
+  decidedByUserId    String?
+  decidedAt          DateTime?
+
+  RequestInstance    RequestInstance @relation(fields: [requestInstanceId], references: [id])
+
+  @@index([requestInstanceId, status])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // 'change_request_submitted' | 'change_request_decided' | 'booking_approved' | 'legend_pending'
+  createdAt   DateTime @default(now())
+  payload     Json
+  readAt      DateTime?
+  // for email fallback
+  channel     String   @default("inapp") // inapp|email
+  deliveryAt  DateTime? // when we attempted delivery
+  deliveredAt DateTime?
 }
